@@ -12,8 +12,6 @@ print(f"\nLabel: {gesture.label}")
 print(f"Anzahl der Frames insgesamt: {len(gesture.frames)}\n")
 
 max_frames = min(20, len(gesture.frames))
-print("FPS: " + str(gesture.fps))
-
 
 for frame_idx in range(max_frames):
     frame = gesture.frames[frame_idx]
@@ -29,10 +27,10 @@ for frame_idx in range(max_frames):
     print("-" * 40)
 
 
+print("FPS: " + str(gesture.fps))
+
 # Visualize Skeleton
 visualizer = visualize(info=False)
 for hands in gesture.frames:
-    if not visualizer.send_pose(hands):
-        break
-
+    visualizer.send_pose(hands)
     time.sleep(1.0 / gesture.fps)

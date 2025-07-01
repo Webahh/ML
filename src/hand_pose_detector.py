@@ -112,6 +112,19 @@ class Hand:
     # landmark positions in px within the image
     landmark_pos: []
 
+    def is_empty(self):
+        return self.wrist_pos[0] == -100 and self.wrist_pos[1] == -100
+
+    @staticmethod
+    def empty(left: bool):
+        return Hand(
+            left_hand=bool,
+            wrist_pos=np.array([-100, -100]),
+            landmarks={name: np.array([0, 0, 0]) for name in LANDMARK_NAMES},
+            hand_area=(0, 0, 0, 0),
+            landmark_pos=[],
+        )
+
 
 class HandPoseDetector:
     def __init__(self):

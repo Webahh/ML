@@ -1,7 +1,7 @@
 import cv2
 import pickle
 import os
-from hand_pose_detector import HandPoseDetector
+from hand_pose_detector import HandPoseDetector, Hand
 from augment import AugmentationPipeline, mirror
 from gesture import Gesture
 
@@ -12,7 +12,6 @@ detector = HandPoseDetector()
 def process_video(video_path: str, label: str) -> Gesture:
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
-    print(fps)
     frames = []
 
     while True:
@@ -21,10 +20,21 @@ def process_video(video_path: str, label: str) -> Gesture:
             break
 
         hands = detector.detect(frame)
-        frames.append(hands)
+
+        # Always have a left and right hand in each frame, if there are no hands detected, use empty hands...
+        left = Hand.empty(left=True)
+        right = Hand.empty(left=False)
+
+        for hand in hands:
+            if hand.left_hand:
+                left = hand
+            else:
+                right = hand
+
+        frames.append([left, right])
 
     cap.release()
-    return Gesture(label=label, frames=frames, fps=fps)
+    return Gesture(label=label, frames=frames, fps=fps).upscale_fps()
 
 
 def save_gesture(savedir: str, gesture: Gesture, suffix=""):
