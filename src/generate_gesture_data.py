@@ -1,23 +1,16 @@
-import os
 import cv2
 import pickle
-import numpy as np
-from main import HandPoseDetector, Hand
-from dataclasses import replace
+import os
+from hand_pose_detector import HandPoseDetector
+from augment import AugmentationPipeline, mirror
 from gesture import Gesture
 
 
-def mirror_hand(hand: Hand) -> Hand:
-    # Spiegelung an der Y-Achse (x-Werte umkehren)
-    mirrored_landmarks = {
-        k: np.array([-v[0], v[1], v[2]]) for k, v in hand.landmarks.items()
-    }
-    return replace(hand, landmarks=mirrored_landmarks)
+detector = HandPoseDetector()
 
 
-def process_video(video_path: str, label: str, augment=True) -> Gesture:
+def process_video(video_path: str, label: str) -> Gesture:
     cap = cv2.VideoCapture(video_path)
-    detector = HandPoseDetector()
     frames = []
 
     while True:
@@ -25,31 +18,50 @@ def process_video(video_path: str, label: str, augment=True) -> Gesture:
         if not ret:
             break
 
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        rgb.flags.writeable = False
-        hands = detector.detect(rgb)
-
-        if hands:
-            all_hands = []
-            for hand in hands:
-                all_hands.append(hand)
-
-                if augment:
-                    all_hands.append(mirror_hand(hand))
-
-            frames.append(all_hands)
+        hands = detector.detect(frame)
+        frames.append(hands)
 
     cap.release()
     return Gesture(label=label, frames=frames)
 
 
-def save_gesture(gesture: Gesture, filename: str):
-    with open(filename, "wb") as f:
+def save_gesture(savedir: str, gesture: Gesture, suffix=""):
+    path = f"{savedir}/{gesture.label}_{suffix}.pkl"
+
+    with open(path, "wb") as f:
         pickle.dump(gesture, f)
-    print(f"Gespeichert: {filename}")
+
+    print(f"Gespeichert: {path}")
+
+
+def generate_gestures(data: [(str, str)]) -> [Gesture]:
+    # Detect gestures
+    gestures = [process_video(file, label) for file, label in data]
+
+    # Filter out gestures whith no frames
+    gestures = [g for g in gestures if len(g.frames)]
+
+    # Setup Aumentation pipeline to generate mirrored copies of the entire dataset
+    pipeline = AugmentationPipeline()
+    pipeline.add(mirror)
+
+    # Run augmentation pipeline for each gesture
+    augmented_gestures = []
+    for g in gestures:
+        augmented_gestures.extend(pipeline.augment(g))
+
+    return augmented_gestures
 
 
 if __name__ == "__main__":
-    gesture = process_video("videos/A.mp4", "A", augment=False)  # true == mirrored
-    os.makedirs("gestures", exist_ok=True)
-    save_gesture(gesture, "gestures/A.pkl")
+    training_data = [
+        ("ressources/videos/A.mp4", "A"),
+        ("ressources/videos/test.mp4", "Test"),
+    ]
+
+    os.makedirs("ressources/gestures", exist_ok=True)
+    gestures = generate_gestures(training_data)
+
+    # Save all gestures
+    for i, g in enumerate(gestures):
+        save_gesture("ressources/gestures", g, str(i))
