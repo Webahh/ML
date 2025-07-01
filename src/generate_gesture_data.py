@@ -3,17 +3,17 @@ import cv2
 import pickle
 import numpy as np
 from main import HandPoseDetector, Hand
-from dataclasses import dataclass, replace
+from dataclasses import replace
+from gesture import Gesture
 
-@dataclass
-class Gesture:
-    label: str
-    frames: list[list[Hand]]
 
 def mirror_hand(hand: Hand) -> Hand:
     # Spiegelung an der Y-Achse (x-Werte umkehren)
-    mirrored_landmarks = {k: np.array([-v[0], v[1], v[2]]) for k, v in hand.landmarks.items()}
+    mirrored_landmarks = {
+        k: np.array([-v[0], v[1], v[2]]) for k, v in hand.landmarks.items()
+    }
     return replace(hand, landmarks=mirrored_landmarks)
+
 
 def process_video(video_path: str, label: str, augment=True) -> Gesture:
     cap = cv2.VideoCapture(video_path)
@@ -42,12 +42,14 @@ def process_video(video_path: str, label: str, augment=True) -> Gesture:
     cap.release()
     return Gesture(label=label, frames=frames)
 
+
 def save_gesture(gesture: Gesture, filename: str):
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         pickle.dump(gesture, f)
     print(f"Gespeichert: {filename}")
 
+
 if __name__ == "__main__":
-    gesture = process_video("videos/A.mp4", "A", augment=False) #true == mirrored
+    gesture = process_video("videos/A.mp4", "A", augment=False)  # true == mirrored
     os.makedirs("gestures", exist_ok=True)
     save_gesture(gesture, "gestures/A.pkl")
