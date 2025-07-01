@@ -6,6 +6,7 @@ from hand_pose_detector import Hand
 class Gesture:
     label: str
     frames: list[list[Hand]]
+    fps: float = 1.0
 
     @staticmethod
     def from_hands(hands: [Hand], label="Unknown"):

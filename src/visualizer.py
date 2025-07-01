@@ -9,6 +9,10 @@ from queue import Queue
 from hand_pose_detector import LANDMARK_NAMES, POS_MAX, Hand
 
 
+DEFAULT_WIDTH = 960
+DEFAULT_HEIGHT = 640
+
+
 def draw_skeleton(img, pose: Hand, joints=True, bones=True, info=True):
     """
     Draws this hands skeleton onto the provided image.
@@ -53,7 +57,9 @@ def draw_skeleton(img, pose: Hand, joints=True, bones=True, info=True):
         joint(p, pose.landmarks[LANDMARK_NAMES[i]])
 
 
-def draw_debug_frame(pose: Hand, img=None, w=960, h=640, **kwargs) -> []:
+def draw_debug_frame(
+    pose: Hand, img=None, w=DEFAULT_WIDTH, h=DEFAULT_HEIGHT, **kwargs
+) -> []:
     """
     Draw the hand data onto an image.
     Creates a black background image if no image was provided.
@@ -146,7 +152,12 @@ def visualize(joints=True, bones=True, info=True) -> RunningVisalizer:
             queue.task_done()
 
             # Present the image
-            cv.imshow("Handpose Visualizer", hi_img)
+            cv.imshow(
+                "Handpose Visualizer",
+                hi_img
+                if hi_img is not None
+                else np.zeros((DEFAULT_HEIGHT, DEFAULT_WIDTH, 3), np.uint8),
+            )
 
         cv.destroyWindow("Handpose Visualizer")
         queue.terminate()

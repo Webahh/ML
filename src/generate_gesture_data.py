@@ -11,6 +11,8 @@ detector = HandPoseDetector()
 
 def process_video(video_path: str, label: str) -> Gesture:
     cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(fps)
     frames = []
 
     while True:
@@ -22,7 +24,7 @@ def process_video(video_path: str, label: str) -> Gesture:
         frames.append(hands)
 
     cap.release()
-    return Gesture(label=label, frames=frames)
+    return Gesture(label=label, frames=frames, fps=fps)
 
 
 def save_gesture(savedir: str, gesture: Gesture, suffix=""):
@@ -35,6 +37,7 @@ def save_gesture(savedir: str, gesture: Gesture, suffix=""):
 
 
 def generate_gestures(data: [(str, str)]) -> [Gesture]:
+    """Converts a list og labled videos into a list of labled gestures"""
     # Detect gestures
     gestures = [process_video(file, label) for file, label in data]
 
