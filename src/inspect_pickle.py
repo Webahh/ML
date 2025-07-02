@@ -1,7 +1,9 @@
 import pickle
-from generate_gesture_data import Gesture
+import time
+from gesture import Gesture
+from visualizer import visualize
 
-pkl_path = "gestures/A.pkl"
+pkl_path = "ressources/gestures/Test_2.pkl"
 
 with open(pkl_path, "rb") as f:
     gesture: Gesture = pickle.load(f)
@@ -23,3 +25,12 @@ for frame_idx in range(max_frames):
             if key in hand.landmarks:
                 print(f"    {key}: {hand.landmarks[key]}")
     print("-" * 40)
+
+
+print("FPS: " + str(gesture.fps))
+
+# Visualize Skeleton
+visualizer = visualize(info=False)
+for hands in gesture.frames:
+    visualizer.send_pose(hands)
+    time.sleep(1.0 / gesture.fps)
