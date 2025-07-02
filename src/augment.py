@@ -51,15 +51,14 @@ def mirror(gesture) -> [Gesture]:
     return [apply_on_gesture(mirror_hand, gesture)]
 
 
-def translate(gesture: Gesture, offset: [0, 0, 0]) -> [Gesture]:
+def translate(gesture: Gesture, offset: [int, int]) -> [Gesture]:
     """
     Takes a gesture and produces a copy of it with the given offset applied
 
     """
 
     def offset_hand(hand: Hand) -> Hand:
-        landmarks = {k: (v + offset) for k, v in hand.landmarks.items()}
-        return replace(hand, landmarks=landmarks)
+        return replace(hand, wrist_pos=np.array(hand.wrist_pos + offset))
 
     return [apply_on_gesture(offset_hand, gesture)]
 

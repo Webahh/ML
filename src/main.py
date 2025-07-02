@@ -17,7 +17,7 @@ def augment_pipeline_example(gesture: Gesture) -> [Gesture]:
     pipeline.add(mirror)
 
     # Create copies moved a little bit up
-    pipeline.add(translate, offset=[0, -10000, 0])
+    pipeline.add(translate, offset=[0, -10000])
 
     # Run the pipeline
     gestures = pipeline.augment(gesture)
