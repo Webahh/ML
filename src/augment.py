@@ -21,7 +21,7 @@ The following functions can be used as pipeline functions
 
 A pipeline function takes a gesture as input, and returns any number of  modified copies.
 Addiditonally pipeline function can take keyword arguments
-    
+
 """
 
 
@@ -62,10 +62,14 @@ def translate(gesture: Gesture, offset: [int, int]) -> [Gesture]:
 
     return [apply_on_gesture(offset_hand, gesture)]
 
+    # TODO random translate, scale, länge von manchen knochen ggf ändern?
+    # TODO von 60 FPS aauf 5, 10, 20, 30 reduzieren
+
 
 """
+
 END OF PIPELINE FUNCTIONS
-    
+
 """
 
 
@@ -78,21 +82,27 @@ class AugmentationPipeline:
     def __init__(self):
         self.__pipeline = []
 
-    def add(self, func, **kwargs):
+    def add(self, name: str, func, **kwargs):
         """Adds a step to the pipeline, that is applied for every gesture"""
 
-        def wrap(hands: [Hand]):
-            return func(hands, **kwargs)
+        def wrapper(gesture: Gesture):
+            return [(g, name) for g in func(gesture, **kwargs)]
 
-        self.__pipeline.append(wrap)
+        self.__pipeline.append(wrapper)
 
-    def augment(self, gesture: Gesture) -> [Gesture]:
-        """Returns a list of gestures based on the augmentation pipeline"""
-        augmented = [gesture]
+    def augment(self, gesture: Gesture) -> list[tuple[Gesture, str]]:
+        """Returns list of (augmented_gesture, augmentation_name)"""
+        results = [(gesture, "orig")]
 
         for func in self.__pipeline:
-            new_gestures = [func(g) for g in augmented]
-            for gesture_set in new_gestures:
-                augmented.extend(gesture_set)
+            new_results = []
 
-        return augmented
+            for g, label in results:
+                augmented = func(g)
+                for aug_g, aug_label in augmented:
+                    combined_label = f"{label}+{aug_label}" if label != "orig" else aug_label
+                    new_results.append((aug_g, combined_label))
+
+            results.extend(new_results)
+
+        return results

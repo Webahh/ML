@@ -1,36 +1,39 @@
+import os
 import pickle
 import time
 from gesture import Gesture
 from visualizer import visualize
 
-pkl_path = "ressources/gestures/Test_2.pkl"
+label_filter = "A"
+gesture_dir = "ressources/gestures"
 
-with open(pkl_path, "rb") as f:
-    gesture: Gesture = pickle.load(f)
+gesture_files = [
+    os.path.join(gesture_dir, f)
+    for f in os.listdir(gesture_dir)
+    if f.endswith(".pkl") and f.startswith(label_filter + "_")
+]
 
-print(f"\nLabel: {gesture.label}")
-print(f"Anzahl der Frames insgesamt: {len(gesture.frames)}\n")
+gestures = []
+for path in gesture_files:
+    with open(path, "rb") as f:
+        gesture: Gesture = pickle.load(f)
+        gestures.append(gesture)
 
-max_frames = min(20, len(gesture.frames))
+# shortest length for viz frame sync
+min_len = min(len(g.frames) for g in gestures)
+fps = gestures[0].fps if gestures else 30.0
 
-for frame_idx in range(max_frames):
-    frame = gesture.frames[frame_idx]
-    print(f"Frame {frame_idx + 1} enthält {len(frame)} Hand/Hände:")
+print(f"{len(gestures)} Gesten geladen mit min. {min_len} synchronen Frames.")
 
-    for hand_idx, hand in enumerate(frame):
-        print(f"  Hand {hand_idx + 1}:")
-        print(f"    Linke Hand: {hand.left_hand}")
-        print(f"    Wrist Position: {hand.wrist_pos}")
-        for key in ["WRIST", "THUMB_TIP", "INDEX_FINGER_TIP"]:
-            if key in hand.landmarks:
-                print(f"    {key}: {hand.landmarks[key]}")
-    print("-" * 40)
-
-
-print("FPS: " + str(gesture.fps))
-
-# Visualize Skeleton
 visualizer = visualize(info=False)
-for hands in gesture.frames:
-    visualizer.send_pose(hands)
-    time.sleep(1.0 / gesture.fps)
+
+for frame_idx in range(min_len):
+    all_hands = []
+
+    for g in gestures:
+        all_hands.extend(g.frames[frame_idx])
+
+    visualizer.send_pose(all_hands)
+    time.sleep(1.0 / fps)
+
+visualizer.terminate()
