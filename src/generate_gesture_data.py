@@ -57,11 +57,18 @@ def delete_old_gestures(output_dir):
     for file in os.listdir(output_dir):
         if file.endswith(".pkl"):
             os.remove(os.path.join(output_dir, file))
+
     print(f"Deleted old gestures in {output_dir}.")
 
 
 def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gestures"):
     delete_old_gestures(output_dir)
+
+    if not os.path.isdir(video_dir):
+        print(
+            f"No video-gestures found in '{video_dir}'. No new gestures will be generated."
+        )
+        return
 
     training_data = []
     for file in os.listdir(video_dir):
@@ -89,7 +96,9 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
         for aug_gesture, augtype in pipeline.augment(gesture):
             save_gesture(output_dir, aug_gesture, augtype=augtype)
 
-    print(f"{len(base_gestures)} Videos verarbeitet und mit Augmentierungen gespeichert.")
+    print(
+        f"{len(base_gestures)} Videos verarbeitet und mit Augmentierungen gespeichert."
+    )
 
 
 if __name__ == "__main__":
