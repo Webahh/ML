@@ -21,7 +21,7 @@ The following functions can be used as pipeline functions
 
 A pipeline function takes a gesture as input, and returns any number of  modified copies.
 Addiditonally pipeline function can take keyword arguments
-    
+
 """
 
 
@@ -63,9 +63,77 @@ def translate(gesture: Gesture, offset: [int, int]) -> [Gesture]:
     return [apply_on_gesture(offset_hand, gesture)]
 
 
+def random_translate(gesture: Gesture, max_offset: int = 20) -> [Gesture]:
+    offset = np.random.randint(-max_offset, max_offset + 1, size=2)
+    return translate(gesture, offset)
+
+
+def scale(gesture: Gesture, factor: float = 1.1) -> [Gesture]:
+    def scale_hand(hand: Hand) -> Hand:
+        scaled_landmarks = {k: np.array(v * factor, dtype=np.int16) for k, v in hand.landmarks.items()}
+        scaled_wrist = np.array(hand.wrist_pos * factor, dtype=np.int16)
+        return replace(hand, landmarks=scaled_landmarks, wrist_pos=scaled_wrist)
+    return [apply_on_gesture(scale_hand, gesture)]
+
+
+def jitter(gesture: Gesture, noise_level: float = 5.0) -> [Gesture]:
+    """
+    simulates noises with random shifts (e.g. camera or handshaking)
+    """
+
+    def jitter_hand(hand: Hand) -> Hand:
+        new_landmarks = {
+            name: pos + np.random.normal(0, noise_level, size=3)
+            for name, pos in hand.landmarks.items()
+        }
+        new_wrist = hand.wrist_pos + np.random.normal(0, noise_level, size=2)
+        return replace(hand, landmarks=new_landmarks, wrist_pos=new_wrist)
+
+    return [apply_on_gesture(jitter_hand, gesture)]
+
+
+def zoom(gesture: Gesture, scale_factor: float = 1.2) -> [Gesture]:
+    """
+    Moves the hand to the camera
+    """
+    def zoom_hand(hand: Hand) -> Hand:
+        anchor = hand.wrist_pos
+
+        new_landmarks = {
+            name: anchor + (pos - anchor) * scale_factor
+            for name, pos in hand.landmarks.items()
+        }
+
+        return replace(hand, landmarks=new_landmarks)
+
+    return [apply_on_gesture(zoom_hand, gesture)]
+
+
+def random_zoom(gesture: Gesture, min_factor=0.8, max_factor=1.2) -> [Gesture]:
+    """
+    Random zoom, for a random position on the z axis
+    """
+    factor = np.random.uniform(min_factor, max_factor)
+    return zoom(gesture, scale_factor=factor)
+
+
+def drop_frames(gesture: Gesture, drop_rate: float = 0.1) -> [Gesture]:
+    """
+    Removes analog to the drop_rate some frames
+    """
+    total = len(gesture.frames)
+    keep_mask = np.random.rand(total) > drop_rate
+    new_frames = [frame for i, frame in enumerate(gesture.frames) if keep_mask[i]]
+
+    if not new_frames:
+        new_frames = [gesture.frames[len(gesture.frames) // 2]]
+
+    return [replace(gesture, frames=new_frames)]
+
 """
+
 END OF PIPELINE FUNCTIONS
-    
+
 """
 
 
@@ -78,21 +146,27 @@ class AugmentationPipeline:
     def __init__(self):
         self.__pipeline = []
 
-    def add(self, func, **kwargs):
+    def add(self, name: str, func, **kwargs):
         """Adds a step to the pipeline, that is applied for every gesture"""
 
-        def wrap(hands: [Hand]):
-            return func(hands, **kwargs)
+        def wrapper(gesture: Gesture):
+            return [(g, name) for g in func(gesture, **kwargs)]
 
-        self.__pipeline.append(wrap)
+        self.__pipeline.append(wrapper)
 
-    def augment(self, gesture: Gesture) -> [Gesture]:
-        """Returns a list of gestures based on the augmentation pipeline"""
-        augmented = [gesture]
+    def augment(self, gesture: Gesture) -> list[tuple[Gesture, str]]:
+        """Returns list of (augmented_gesture, augmentation_name)"""
+        results = [(gesture, "orig")]
 
         for func in self.__pipeline:
-            new_gestures = [func(g) for g in augmented]
-            for gesture_set in new_gestures:
-                augmented.extend(gesture_set)
+            new_results = []
 
-        return augmented
+            for g, label in results:
+                augmented = func(g)
+                for aug_g, aug_label in augmented:
+                    combined_label = f"{label}+{aug_label}" if label != "orig" else aug_label
+                    new_results.append((aug_g, combined_label))
+
+            results.extend(new_results)
+
+        return results

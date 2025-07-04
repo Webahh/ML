@@ -18,6 +18,25 @@ class Gesture:
         """Converts a gesture with one frame into a list of hands"""
         return self.frames[0]
 
+    def normalize_fps(self, target: float = 60.0):
+        if self.fps < target:
+            return self.upscale_fps(target)
+        elif self.fps > target:
+            new_frames = self.resample_frames(self.frames, self.fps, target)
+            return replace(self, frames=new_frames, fps=target)
+        else:
+            return self
+
+    @staticmethod
+    def resample_frames(frames: list, original_fps: float, target_fps: float = 30.0) -> list:
+        if original_fps == target_fps or len(frames) < 2:
+            return frames
+
+        duration = len(frames) / original_fps
+        new_frame_count = int(round(duration * target_fps))
+        indices = np.linspace(0, len(frames) - 1, new_frame_count).astype(int)
+        return [frames[i] for i in indices]
+
     def upscale_fps(self, target=60):
         t = target // self.fps
         o = target % self.fps
