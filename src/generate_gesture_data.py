@@ -1,5 +1,6 @@
 import multiprocessing
 import uuid
+import sys
 
 import cv2
 import pickle
@@ -16,6 +17,8 @@ def process_video(video_path: str, label: str) -> Gesture:
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     frames = []
+
+    print(f"Processing video {label}...")
 
     while True:
         ret, frame = cap.read()
@@ -37,6 +40,7 @@ def process_video(video_path: str, label: str) -> Gesture:
         frames.append([left, right])
 
     cap.release()
+    print(f"Finished processing video {label}")
     return Gesture(label=label, frames=frames, fps=fps).upscale_fps()
 
 
@@ -80,11 +84,19 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
         print("Keine passenden Videos gefunden.")
         return
 
-    # Multiprocessing for videos
-    cpu_count = multiprocessing.cpu_count()
-    num_processes = max(1, cpu_count // 2)
-    with Pool(processes=num_processes) as pool:
-        base_gestures = pool.starmap(process_video, training_data)
+    base_gestures = []
+
+    if "-s" in sys.argv or "--single-thread" in sys.argv:
+        for video, label in training_data:
+            base_gestures.append(process_video(video, label))
+    else:
+        # Multiprocessing for videos
+        cpu_count = multiprocessing.cpu_count()
+        num_processes = max(1, cpu_count // 2)
+        with Pool(processes=num_processes) as pool:
+            base_gestures = pool.starmap(process_video, training_data)
+
+    print("Video processing finished, running augmentation pipeline")
 
     base_gestures = [g for g in base_gestures if len(g.frames)]
 
@@ -93,6 +105,7 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
     pipeline.add("mirr", mirror)
 
     for gesture in base_gestures:
+        print(f"Augmenting {gesture.label}...")
         for aug_gesture, augtype in pipeline.augment(gesture):
             save_gesture(output_dir, aug_gesture, augtype=augtype)
 
