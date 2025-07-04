@@ -1,6 +1,8 @@
 import numpy as np
-
+import pickle
 from gesture import Gesture
+from os import path
+import os
 from hand_pose_detector import Hand, LANDMARK_NAMES
 
 
@@ -13,7 +15,7 @@ class ModelInput:
         self._input_matrix = np.zeros(shape=(2, 22, 3), dtype=np.int16)
 
         left_wrist = [left.wrist_pos[0], left.wrist_pos[1], 0]
-        right_wrist = [right.wrist_pos[0], left.wrist_pos[1], 0]
+        right_wrist = [right.wrist_pos[0], right.wrist_pos[1], 0]
         left_joints = joints(left)
         right_joints = joints(right)
 
@@ -23,7 +25,9 @@ class ModelInput:
         self._input_matrix[0] = np.array(left_joints)
         self._input_matrix[1] = np.array(right_joints)
 
-        print(self._input_matrix)
+    @property
+    def mat(self):
+        return self._input_matrix
 
     @staticmethod
     def from_hands(hands: [Hand]):
@@ -33,7 +37,7 @@ class ModelInput:
         """
 
         left = Hand.empty(left=True)
-        right = Hand.empty(right=True)
+        right = Hand.empty(left=False)
 
         for hand in hands:
             if hand.left_hand:
@@ -41,7 +45,7 @@ class ModelInput:
             else:
                 right = hand
 
-        return ModelInput(left, right)
+        return ModelInput(left=left, right=right)
 
     @staticmethod
     def from_gesture(gesture: Gesture):
@@ -57,8 +61,15 @@ class ModelInput:
         return (gesture.label, inputs)
 
 
-ModelInput(Hand.empty(left=True), Hand.empty(left=False))
+def load_trainings_data(data_dir: str) -> [(str, [ModelInput])]:
+    data = []
 
+    for fname in os.listdir(data_dir):
+        p = path.join(data_dir, fname)
+        try:
+            with open(p, "rb") as f:
+                data.append(ModelInput.from_gesture(pickle.load(f)))
+        except Exception as e:
+            print(f"Failed to load '{p}', due to {e}")
 
-def load_trainings_data() -> [(str, [ModelInput]]:
-    pass
+    return data

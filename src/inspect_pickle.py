@@ -5,12 +5,13 @@ from gesture import Gesture
 from visualizer import visualize
 
 label_filter = "A"
+augment_filter = ""  # augment_filter = "mirr"
 gesture_dir = "ressources/gestures"
 
 gesture_files = [
     os.path.join(gesture_dir, f)
     for f in os.listdir(gesture_dir)
-    if f.endswith(".pkl") and f.startswith(label_filter + "_")
+    if f.endswith(".pkl") and f.startswith(label_filter + "_" + augment_filter)
 ]
 
 gestures = []
