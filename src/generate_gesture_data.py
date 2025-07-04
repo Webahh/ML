@@ -92,8 +92,8 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
     else:
         # Multiprocessing for videos
         cpu_count = multiprocessing.cpu_count()
-        num_processes = max(1, cpu_count // 2)
-        with Pool(processes=num_processes) as pool:
+        num_processes = max(1, int(cpu_count * 0.8))
+        with multiprocessing.get_context("spawn").Pool(processes=num_processes) as pool:
             base_gestures = pool.starmap(process_video, training_data)
 
     print("Video processing finished, running augmentation pipeline")
