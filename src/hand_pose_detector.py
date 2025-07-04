@@ -149,7 +149,7 @@ class HandPoseDetector:
         if results.multi_hand_landmarks is not None:
             for lms, lr in zip(results.multi_hand_landmarks, results.multi_handedness):
                 hand = Hand(
-                    left_hand="Left" in str(lr),
+                    left_hand=bool("Left" in str(lr)),
                     wrist_pos=find_wrist_pos(lms, w, h),
                     landmarks=normalize_landmarks(lms),
                     hand_area=find_hand_area(lms, w, h),
