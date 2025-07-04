@@ -8,7 +8,7 @@ import os
 from hand_pose_detector import HandPoseDetector, Hand
 from augment import AugmentationPipeline, mirror, translate
 from gesture import Gesture
-from multiprocessing import Pool
+
 
 detector = HandPoseDetector()
 
@@ -40,6 +40,7 @@ def process_video(video_path: str, label: str) -> Gesture:
         frames.append([left, right])
 
     cap.release()
+
     print(f"Finished processing video {label}")
     return Gesture(label=label, frames=frames, fps=fps).upscale_fps()
 

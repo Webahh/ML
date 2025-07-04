@@ -12,7 +12,7 @@ def apply_on_gesture(f, gesture: Gesture) -> Gesture:
         hands = []
         for hand in frame:
             if hand.is_empty():
-                hands.append(Hand.empty(hand.left_hand))
+                hands.append(Hand.empty(f(hand).left_hand))
             else:
                 hands.append(f(hand))
 
