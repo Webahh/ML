@@ -62,9 +62,73 @@ def translate(gesture: Gesture, offset: [int, int]) -> [Gesture]:
 
     return [apply_on_gesture(offset_hand, gesture)]
 
-    # TODO random translate, scale, länge von manchen knochen ggf ändern?
-    # TODO von 60 FPS aauf 5, 10, 20, 30 reduzieren
 
+def random_translate(gesture: Gesture, max_offset: int = 20) -> [Gesture]:
+    offset = np.random.randint(-max_offset, max_offset + 1, size=2)
+    return translate(gesture, offset)
+
+
+def scale(gesture: Gesture, factor: float = 1.1) -> [Gesture]:
+    def scale_hand(hand: Hand) -> Hand:
+        scaled_landmarks = {k: np.array(v * factor, dtype=np.int16) for k, v in hand.landmarks.items()}
+        scaled_wrist = np.array(hand.wrist_pos * factor, dtype=np.int16)
+        return replace(hand, landmarks=scaled_landmarks, wrist_pos=scaled_wrist)
+    return [apply_on_gesture(scale_hand, gesture)]
+
+
+def jitter(gesture: Gesture, noise_level: float = 5.0) -> [Gesture]:
+    """
+    simulates noises with random shifts (e.g. camera or handshaking)
+    """
+
+    def jitter_hand(hand: Hand) -> Hand:
+        new_landmarks = {
+            name: pos + np.random.normal(0, noise_level, size=3)
+            for name, pos in hand.landmarks.items()
+        }
+        new_wrist = hand.wrist_pos + np.random.normal(0, noise_level, size=2)
+        return replace(hand, landmarks=new_landmarks, wrist_pos=new_wrist)
+
+    return [apply_on_gesture(jitter_hand, gesture)]
+
+
+def zoom(gesture: Gesture, scale_factor: float = 1.2) -> [Gesture]:
+    """
+    Moves the hand to the camera
+    """
+    def zoom_hand(hand: Hand) -> Hand:
+        anchor = hand.wrist_pos
+
+        new_landmarks = {
+            name: anchor + (pos - anchor) * scale_factor
+            for name, pos in hand.landmarks.items()
+        }
+
+        return replace(hand, landmarks=new_landmarks)
+
+    return [apply_on_gesture(zoom_hand, gesture)]
+
+
+def random_zoom(gesture: Gesture, min_factor=0.8, max_factor=1.2) -> [Gesture]:
+    """
+    Random zoom, for a random position on the z axis
+    """
+    factor = np.random.uniform(min_factor, max_factor)
+    return zoom(gesture, scale_factor=factor)
+
+
+def drop_frames(gesture: Gesture, drop_rate: float = 0.1) -> [Gesture]:
+    """
+    Removes analog to the drop_rate some frames
+    """
+    total = len(gesture.frames)
+    keep_mask = np.random.rand(total) > drop_rate
+    new_frames = [frame for i, frame in enumerate(gesture.frames) if keep_mask[i]]
+
+    if not new_frames:
+        new_frames = [gesture.frames[len(gesture.frames) // 2]]
+
+    return [replace(gesture, frames=new_frames)]
 
 """
 
