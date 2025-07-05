@@ -9,7 +9,13 @@ def apply_on_gesture(f, gesture: Gesture) -> Gesture:
 
     new_frames = []
     for frame in gesture.frames:
-        hands = [f(hand) for hand in frame]
+        hands = []
+        for hand in frame:
+            if hand.is_empty():
+                hands.append(Hand.empty(f(hand).left_hand))
+            else:
+                hands.append(f(hand))
+
         new_frames.append(hands)
 
     return replace(gesture, frames=new_frames)
@@ -70,9 +76,12 @@ def random_translate(gesture: Gesture, max_offset: int = 20) -> [Gesture]:
 
 def scale(gesture: Gesture, factor: float = 1.1) -> [Gesture]:
     def scale_hand(hand: Hand) -> Hand:
-        scaled_landmarks = {k: np.array(v * factor, dtype=np.int16) for k, v in hand.landmarks.items()}
+        scaled_landmarks = {
+            k: np.array(v * factor, dtype=np.int16) for k, v in hand.landmarks.items()
+        }
         scaled_wrist = np.array(hand.wrist_pos * factor, dtype=np.int16)
         return replace(hand, landmarks=scaled_landmarks, wrist_pos=scaled_wrist)
+
     return [apply_on_gesture(scale_hand, gesture)]
 
 
@@ -96,6 +105,7 @@ def zoom(gesture: Gesture, scale_factor: float = 1.2) -> [Gesture]:
     """
     Moves the hand to the camera
     """
+
     def zoom_hand(hand: Hand) -> Hand:
         anchor = hand.wrist_pos
 
@@ -129,6 +139,7 @@ def drop_frames(gesture: Gesture, drop_rate: float = 0.1) -> [Gesture]:
         new_frames = [gesture.frames[len(gesture.frames) // 2]]
 
     return [replace(gesture, frames=new_frames)]
+
 
 """
 
@@ -164,7 +175,9 @@ class AugmentationPipeline:
             for g, label in results:
                 augmented = func(g)
                 for aug_g, aug_label in augmented:
-                    combined_label = f"{label}+{aug_label}" if label != "orig" else aug_label
+                    combined_label = (
+                        f"{label}+{aug_label}" if label != "orig" else aug_label
+                    )
                     new_results.append((aug_g, combined_label))
 
             results.extend(new_results)

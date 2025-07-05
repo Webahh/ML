@@ -28,7 +28,9 @@ class Gesture:
             return self
 
     @staticmethod
-    def resample_frames(frames: list, original_fps: float, target_fps: float = 30.0) -> list:
+    def resample_frames(
+        frames: list, original_fps: float, target_fps: float = 30.0
+    ) -> list:
         if original_fps == target_fps or len(frames) < 2:
             return frames
 

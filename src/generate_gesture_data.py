@@ -8,7 +8,7 @@ import os
 from hand_pose_detector import HandPoseDetector, Hand
 from augment import AugmentationPipeline, mirror, translate
 from gesture import Gesture
-from multiprocessing import Pool
+
 
 detector = HandPoseDetector()
 
@@ -40,6 +40,7 @@ def process_video(video_path: str, label: str) -> Gesture:
         frames.append([left, right])
 
     cap.release()
+
     print(f"Finished processing video {label}")
     return Gesture(label=label, frames=frames, fps=fps).upscale_fps()
 
@@ -92,8 +93,8 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
     else:
         # Multiprocessing for videos
         cpu_count = multiprocessing.cpu_count()
-        num_processes = max(1, cpu_count // 2)
-        with Pool(processes=num_processes) as pool:
+        num_processes = max(1, int(cpu_count * 0.8))
+        with multiprocessing.get_context("spawn").Pool(processes=num_processes) as pool:
             base_gestures = pool.starmap(process_video, training_data)
 
     print("Video processing finished, running augmentation pipeline")
