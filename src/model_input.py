@@ -25,6 +25,9 @@ class ModelInput:
         self._input_matrix[0] = np.array(left_joints)
         self._input_matrix[1] = np.array(right_joints)
 
+    def flattened(self):
+        return [num for hand in self.mat for coord in hand for num in coord]
+
     @property
     def mat(self):
         return self._input_matrix
@@ -61,7 +64,7 @@ class ModelInput:
         return (gesture.label, inputs)
 
 
-def load_trainings_data(data_dir: str) -> [(str, [ModelInput])]:
+def load_training_data(data_dir: str) -> [(str, [ModelInput])]:
     data = []
 
     for fname in os.listdir(data_dir):
