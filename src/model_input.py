@@ -76,3 +76,23 @@ def load_training_data(data_dir: str) -> [(str, [ModelInput])]:
             print(f"Failed to load '{p}', due to {e}")
 
     return data
+
+
+EMPTY_FRAME = ModelInput.from_hands(
+    [Hand.empty(left=True), Hand.empty(left=False)]
+).flattened()
+
+
+def flatten_frames(seq):
+    return [f.flattened() for f in seq]
+
+
+def add_empty_frames(seq, until):
+    delta = until - len(seq)
+    return (
+        seq
+        + [
+            EMPTY_FRAME,
+        ]
+        * delta
+    )

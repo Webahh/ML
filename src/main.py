@@ -5,6 +5,9 @@ from hand_pose_detector import HandPoseDetector
 from visualizer import visualize
 from augment import AugmentationPipeline, mirror, translate
 from gesture import Gesture
+from model import Model
+from model_input_buffer import ModelInputBuffer
+from model_input import ModelInput
 
 
 # Use the Augmentation pipeline to build generate modified gestures, based on
@@ -25,7 +28,7 @@ def augment_pipeline_example(gesture: Gesture) -> [Gesture]:
     return gestures
 
 
-def main():
+def hand_skeleton_example():
     # Camera Setup
     camera = cv.VideoCapture(0)
     camera.set(cv.CAP_PROP_FRAME_WIDTH, 960 * 1.5)
@@ -70,6 +73,47 @@ def main():
     # Cleanup
     camera.release()
     visualizer.terminate()
+
+
+def main():
+    # Setup the model and its input buffer
+    model = Model.load()
+    buffer = ModelInputBuffer(model, lambda result: print(result))
+
+    # Get HandPoseDetector and Visualizer instances
+    hand_pose = HandPoseDetector()
+    visualizer = visualize(info=False)  # info=False => Dont display joint positions
+
+    # Setup the video
+    video = cv.VideoCapture("ressources/videos/alph_fw_A.mp4")
+    fps = video.get(cv.CAP_PROP_FPS)
+
+    while True:
+        # Read image from video
+        ok, img = video.read()
+        if not ok:
+            print("Failed to fetch frame from camera. Exiting!")
+            break
+
+        # Flip image and detect hand poses in it
+        img = cv.flip(img, 1)
+        hands = hand_pose.detect(img)
+
+        model_input = ModelInput.from_hands(hands)
+        buffer.push(model_input)
+
+        # Use the visualizer to display the webcam image, aswell as the hand poses in it.
+        # If the Visualizer terminates, terminate this loop as well.
+        if not visualizer.send_img_pose(img, hands):
+            break
+
+        # Lock on 15 FPS
+        time.sleep(1.0 / fps)
+
+    # Cleanup
+    video.release()
+    visualizer.terminate()
+    buffer.destroy()
 
 
 if __name__ == "__main__":

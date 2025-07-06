@@ -5,32 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import GRU, Dense, Input
 from tensorflow.keras.models import Sequential
-
-from hand_pose_detector import Hand
-from model_input import ModelInput, load_training_data
-
-EMPTY_FRAME = ModelInput.from_hands(
-    [Hand.empty(left=True), Hand.empty(left=False)]
-).flattened()
-
-
-def flatten_frames(seq):
-    return [f.flattened() for f in seq]
-
-
-def add_empty_frames(slice, until):
-    delta = until - len(slice)
-    return (
-        slice
-        + [
-            EMPTY_FRAME,
-        ]
-        * delta
-    )
-
-
-def join_frames(seq):
-    return [num for frame in seq for num in frame]
+from model_input import add_empty_frames, flatten_frames, load_training_data
 
 
 class Model:
@@ -51,6 +26,9 @@ class Model:
             if label not in self._labels:
                 self._labels[label] = self._label_count
                 self._label_count += 1
+
+        # Build inverted label dict
+        self._lables_inv = {index: label for label, index in self._labels.items()}
 
         # Get training data labels
         training_labels = [self._labels[label] for label, _ in training_data]
@@ -95,6 +73,20 @@ class Model:
         self._model.summary()
         self._model.fit(training_inputs, training_labels, epochs=20, batch_size=16)
 
+    @property
+    def sequence_length(self) -> int:
+        return self._length
+
+    @property
+    def label_count(self) -> int:
+        return self._label_count
+
+    def label_from_index(self, index: int) -> str:
+        return self._lables_inv[index]
+
+    def index_from_label(self, label: str) -> int:
+        return self._labels[label]
+
     def save(self, dir="model"):
         pickle_path = os.path.join(dir, "class.pkl")
         model_path = os.path.join(dir, "model.keras")
@@ -111,6 +103,18 @@ class Model:
             pickle.dump(self, f)
 
         self._model = model
+
+    def infer(self, buffer) -> (str, float):
+        outputs = self._model.predict(np.array([buffer], dtype=np.int16), verbose=0)
+        index, confidence = 0, 0.0
+
+        for output, conf in enumerate(outputs):
+            conf = np.max(conf)
+            if conf > confidence:
+                confidence = conf
+                index = output
+
+        return self.label_from_index(index), confidence
 
     @staticmethod
     def load(dir="model"):
@@ -135,5 +139,6 @@ if __name__ == "__main__":
     model = Model()
     model.save()
 
-    loaded_model = model.load()
+    loaded_model = Model.load()
     assert model._model is not None
+    assert loaded_model._model is not None
