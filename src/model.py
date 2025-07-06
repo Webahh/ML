@@ -57,21 +57,21 @@ class Model:
             [
                 Input(shape=(self._length, 2 * 22 * 3)),
                 GRU(
-                    64,
+                    32,
                     activation="tanh",
                     return_sequences=True,
                 ),
                 GRU(
-                    64,
+                    32,
                     activation="tanh",
                     return_sequences=True,
                 ),
                 GRU(
-                    64,
+                    32,
                     activation="tanh",
                     return_sequences=True,
                 ),
-                GRU(64, activation="tanh"),
+                GRU(32, activation="tanh"),
                 Dense(self._label_count, activation="sigmoid"),
             ]
         )
@@ -81,7 +81,7 @@ class Model:
         )
 
         self._model.summary()
-        self._model.fit(training_inputs, training_labels, epochs=50, batch_size=16)
+        self._model.fit(training_inputs, training_labels, epochs=80, batch_size=16)
 
     @property
     def sequence_length(self) -> int:
