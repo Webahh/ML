@@ -136,6 +136,7 @@ class Model:
 
 # If this file is not imported as a module, train and save model
 if __name__ == "__main__":
+    print("Generating new model")
     model = Model()
     model.save()
 

@@ -3,6 +3,7 @@ from model import Model
 import numpy as np
 import atomics
 import threading
+import time
 
 
 class AtomicAltar:
@@ -33,7 +34,7 @@ class AtomicAltar:
     def offer(self, v):
         """Puts 'v' on the altar. Blocks until the altar is empty, before offering 'v'"""
         while self._gate.load() == 1:
-            pass
+            time.sleep(0.0001)
 
         self._altar = v
         self._gate.store(1)
@@ -41,7 +42,7 @@ class AtomicAltar:
     def consume(self):
         """Takes the offered value from the altar, blocking if no offering is available"""
         while self._gate.load() == 0:
-            pass
+            time.sleep(0.0001)
 
         val = self._altar
         self._altar = None
@@ -52,6 +53,8 @@ class AtomicAltar:
 
 class ModelInputBuffer:
     def __init__(self, model: Model, callback: callable):
+        self._frame = 0
+        self._last_infer = 0
         self._buffer = np.array(
             add_empty_frames([], model.sequence_length), dtype=np.int16
         )
@@ -65,12 +68,17 @@ class ModelInputBuffer:
                     break
 
                 buffer = altar.consume()
+
+                if buffer is None:
+                    continue
+
                 result = self._model.infer(buffer)
                 callback(result)
 
         threading.Thread(target=lambda: infer_worker(self._altar), daemon=True).start()
 
     def push(self, input: ModelInput):
+        self._frame += 1
         frame = input.flattened()
 
         # Save the old buffer, in case it needs to be send to the model
@@ -81,8 +89,9 @@ class ModelInputBuffer:
         self._buffer = np.insert(self._buffer, 0, frame, axis=0)
         self._buffer = np.delete(self._buffer, self._model.sequence_length - 1, axis=0)
 
-        # Check if the model needs a new buffer
-        if self._altar.is_empty():
+        # Check if the model needs a new buffer and if at least two frames have passed
+        if self._altar.is_empty() and self._frame - self._last_infer > 2:
+            self._last_infer = self._frame
             self._altar.offer(old_buffer)
 
     def destroy(self):
