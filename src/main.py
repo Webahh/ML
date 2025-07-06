@@ -85,7 +85,7 @@ def main():
     visualizer = visualize(info=False)  # info=False => Dont display joint positions
 
     # Setup the video
-    video = cv.VideoCapture("ressources/videos/alph_fw_F.mp4")
+    video = cv.VideoCapture("ressources/videos/alph_fw_L.mp4")
     fps = video.get(cv.CAP_PROP_FPS)
 
     while True:

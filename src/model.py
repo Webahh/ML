@@ -57,7 +57,17 @@ class Model:
             [
                 Input(shape=(self._length, 2 * 22 * 3)),
                 GRU(
-                    128,
+                    64,
+                    activation="tanh",
+                    return_sequences=True,
+                ),
+                GRU(
+                    64,
+                    activation="tanh",
+                    return_sequences=True,
+                ),
+                GRU(
+                    64,
                     activation="tanh",
                     return_sequences=True,
                 ),
@@ -71,7 +81,7 @@ class Model:
         )
 
         self._model.summary()
-        self._model.fit(training_inputs, training_labels, epochs=200, batch_size=8)
+        self._model.fit(training_inputs, training_labels, epochs=50, batch_size=16)
 
     @property
     def sequence_length(self) -> int:
@@ -108,8 +118,7 @@ class Model:
         outputs = self._model.predict(np.array([buffer], dtype=np.int16), verbose=0)
         index, confidence = 0, 0.0
 
-        for output, conf in enumerate(outputs):
-            conf = np.max(conf)
+        for output, conf in enumerate(outputs[0]):
             if conf > confidence:
                 confidence = conf
                 index = output
