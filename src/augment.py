@@ -69,9 +69,9 @@ def translate(gesture: Gesture, offset: [int, int]) -> [Gesture]:
     return [apply_on_gesture(offset_hand, gesture)]
 
 
-def random_translate(gesture: Gesture, max_offset: int = 20) -> [Gesture]:
-    offset = np.random.randint(-max_offset, max_offset + 1, size=2)
-    return translate(gesture, offset)
+def random_translate(gesture: Gesture, max_offset: int = 10_000, count=10) -> [Gesture]:
+    offsets = np.random.randint(-max_offset, max_offset + 1, size=(count, 2))
+    return [translate(gesture, off)[0] for off in offsets]
 
 
 def scale(gesture: Gesture, factor: float = 1.1) -> [Gesture]:
@@ -107,11 +107,8 @@ def zoom(gesture: Gesture, scale_factor: float = 1.2) -> [Gesture]:
     """
 
     def zoom_hand(hand: Hand) -> Hand:
-        anchor = hand.wrist_pos
-
         new_landmarks = {
-            name: anchor + (pos - anchor) * scale_factor
-            for name, pos in hand.landmarks.items()
+            name: pos * scale_factor for name, pos in hand.landmarks.items()
         }
 
         return replace(hand, landmarks=new_landmarks)
@@ -119,12 +116,14 @@ def zoom(gesture: Gesture, scale_factor: float = 1.2) -> [Gesture]:
     return [apply_on_gesture(zoom_hand, gesture)]
 
 
-def random_zoom(gesture: Gesture, min_factor=0.8, max_factor=1.2) -> [Gesture]:
+def random_zoom(
+    gesture: Gesture, min_factor=0.8, max_factor=1.2, count=10
+) -> [Gesture]:
     """
     Random zoom, for a random position on the z axis
     """
-    factor = np.random.uniform(min_factor, max_factor)
-    return zoom(gesture, scale_factor=factor)
+    factors = np.random.uniform(min_factor, max_factor, size=count)
+    return [zoom(gesture, scale_factor=fac)[0] for fac in factors]
 
 
 def drop_frames(gesture: Gesture, drop_rate: float = 0.1) -> [Gesture]:

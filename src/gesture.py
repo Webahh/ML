@@ -18,6 +18,19 @@ class Gesture:
         """Converts a gesture with one frame into a list of hands"""
         return self.frames[0]
 
+    def to_parts(self, part_count=8) -> []:
+        """Cuts this gesture into multiple parts returns a list of gestures"""
+        part_len = len(self.frames) // part_count
+        frames = self.frames
+        parts = []
+
+        for i in range(part_count):
+            start = min(i * part_len, len(frames))
+            stop = min((i + 1) * part_len, len(frames))
+            parts.append(replace(self, frames=self.frames[start:stop]))
+
+        return parts
+
     def normalize_fps(self, target: float = 60.0):
         if self.fps < target:
             return self.upscale_fps(target)

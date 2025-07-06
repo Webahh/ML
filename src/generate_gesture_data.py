@@ -6,7 +6,7 @@ import cv2
 import pickle
 import os
 from hand_pose_detector import HandPoseDetector, Hand
-from augment import AugmentationPipeline, mirror, translate
+from augment import AugmentationPipeline, mirror, random_zoom, random_translate
 from gesture import Gesture
 
 
@@ -42,7 +42,7 @@ def process_video(video_path: str, label: str) -> Gesture:
     cap.release()
 
     print(f"Finished processing video {label}")
-    return Gesture(label=label, frames=frames, fps=fps).upscale_fps()
+    return Gesture(label=label, frames=frames, fps=fps).upscale_fps().to_parts()
 
 
 def save_gesture(savedir: str, gesture: Gesture, augtype: str = "orig"):
@@ -99,16 +99,30 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
 
     print("Video processing finished, running augmentation pipeline")
 
-    base_gestures = [g for g in base_gestures if len(g.frames)]
+    base_gestures = [g for parts in base_gestures for g in parts if len(g.frames)]
 
     pipeline = AugmentationPipeline()
-    pipeline.add("trans", translate, offset=[1500, 0])
     pipeline.add("mirr", mirror)
+    pipeline.add("rtrans", random_translate, count=5)
+    pipeline.add("rzoom", random_zoom, count=5)
 
-    for gesture in base_gestures:
+    def augment_gesture(gesture):
         print(f"Augmenting {gesture.label}...")
         for aug_gesture, augtype in pipeline.augment(gesture):
             save_gesture(output_dir, aug_gesture, augtype=augtype)
+
+    for gesture in base_gestures:
+        augment_gesture(gesture)
+
+    # if "-s" in sys.argv or "--single-thread" in sys.argv:
+    #     for gesture in base_gestures:
+    #         augment_gesture(gesture)
+
+    # else:
+    #     cpu_count = multiprocessing.cpu_count()
+    #     num_processes = max(1, int(cpu_count * 0.8))
+    #     with multiprocessing.get_context("spawn").Pool(processes=num_processes) as pool:
+    #         pool.apply(augment_gesture, base_gestures)
 
     print(
         f"{len(base_gestures)} Videos verarbeitet und mit Augmentierungen gespeichert."

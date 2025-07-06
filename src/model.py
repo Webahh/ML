@@ -71,7 +71,7 @@ class Model:
         )
 
         self._model.summary()
-        self._model.fit(training_inputs, training_labels, epochs=20, batch_size=16)
+        self._model.fit(training_inputs, training_labels, epochs=200, batch_size=8)
 
     @property
     def sequence_length(self) -> int:

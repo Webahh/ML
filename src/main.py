@@ -85,7 +85,7 @@ def main():
     visualizer = visualize(info=False)  # info=False => Dont display joint positions
 
     # Setup the video
-    video = cv.VideoCapture("ressources/videos/alph_fw_A.mp4")
+    video = cv.VideoCapture("ressources/videos/alph_fw_Q.mp4")
     fps = video.get(cv.CAP_PROP_FPS)
 
     while True:
@@ -107,7 +107,6 @@ def main():
         if not visualizer.send_img_pose(img, hands):
             break
 
-        # Lock on 15 FPS
         time.sleep(1.0 / fps)
 
     # Cleanup
