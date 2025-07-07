@@ -52,7 +52,15 @@ class AtomicAltar:
 
 
 class ModelInputBuffer:
-    def __init__(self, model: Model, callback: callable):
+    def __init__(
+        self, model: Model, source_fps: float, callback: callable, target_fps=60
+    ):
+        self._target_fps = target_fps
+        self._source_fps = source_fps
+        self._upscale_t = target_fps // source_fps
+        self._upscale_o = target_fps % source_fps
+        self._overflow = self._upscale_o
+        self._last_frame = None
         self._frame = 0
         self._last_infer = 0
         self._buffer = np.array(
@@ -77,21 +85,46 @@ class ModelInputBuffer:
 
         threading.Thread(target=lambda: infer_worker(self._altar), daemon=True).start()
 
+    def push_all(self, inputs: [ModelInput]):
+        for inp in inputs:
+            self.push(inp)
+
     def push(self, input: ModelInput):
-        self._frame += 1
-        frame = input.flattened()
+        inputs = [input]
+
+        if self._last_frame is not None and self._upscale_t > 1:
+            steps = max(0, self._upscale_t - 1)
+            self._overflow += self._upscale_o
+
+            if self._overflow > self._target_fps:
+                steps = self._upscale_t + 1
+                self._overflow = self._overflow % self._source_fps
+
+            inputs = self._last_frame.interpolate_to(input, int(steps))
+
+        self._last_frame = input
+
+        # self._frame += 1
+        frames = [f.flattened() for f in inputs]
 
         # Save the old buffer, in case it needs to be send to the model
 
         old_buffer = self._buffer
 
         # Ring buffer von kleinanzeigen
-        self._buffer = np.insert(self._buffer, 0, frame, axis=0)
-        self._buffer = np.delete(self._buffer, self._model.sequence_length - 1, axis=0)
+        self._buffer = np.insert(self._buffer, 0, frames, axis=0)
+        self._buffer = np.delete(
+            self._buffer,
+            (
+                max(0, self._model.sequence_length - len(frames)),
+                self._model.sequence_length - 1,
+            ),
+            axis=0,
+        )
 
         # Check if the model needs a new buffer and if at least two frames have passed
-        if self._altar.is_empty() and self._frame - self._last_infer > 2:
-            self._last_infer = self._frame
+        if self._altar.is_empty():  # and self._frame - self._last_infer > 2:
+            # self._last_infer = self._frame
             self._altar.offer(old_buffer)
 
     def destroy(self):

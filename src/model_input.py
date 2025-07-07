@@ -3,6 +3,7 @@ import pickle
 from gesture import Gesture
 from os import path
 import os
+import copy
 from hand_pose_detector import Hand, LANDMARK_NAMES
 
 
@@ -62,6 +63,17 @@ class ModelInput:
 
         inputs = [ModelInput.from_hands(hands) for hands in gesture.frames]
         return (gesture.label, inputs)
+
+    def interpolate_to(self, other, stops: int) -> []:
+        delta = other.mat - self.mat
+        new_inputs = [self]
+
+        for stop in range(stops):
+            new_input = copy.deepcopy(self)
+            new_input._input_matrix = self.mat + delta * (1 / stops * stop)
+            new_inputs.append(new_input)
+
+        return new_inputs
 
 
 def load_training_data(data_dir: str) -> [(str, [ModelInput])]:

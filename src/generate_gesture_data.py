@@ -42,7 +42,11 @@ def process_video(video_path: str, label: str) -> Gesture:
     cap.release()
 
     print(f"Finished processing video {label}")
-    return Gesture(label=label, frames=frames, fps=fps).upscale_fps().to_parts()
+    return (
+        Gesture(label=label, frames=frames, fps=fps)
+        .upscale_fps()
+        .to_parts(part_len_secs=1)
+    )
 
 
 def save_gesture(savedir: str, gesture: Gesture, augtype: str = "orig"):

@@ -3,7 +3,15 @@ import pickle
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import GRU, Dense, Input
+from tensorflow.keras.layers import (
+    GRU,
+    Dense,
+    Input,
+    Conv2D,
+    Dropout,
+    Flatten,
+    MaxPooling2D,
+)
 from tensorflow.keras.models import Sequential
 from model_input import add_empty_frames, flatten_frames, load_training_data
 
@@ -55,24 +63,17 @@ class Model:
 
         self._model = Sequential(
             [
-                Input(shape=(self._length, 2 * 22 * 3)),
-                GRU(
-                    32,
-                    activation="tanh",
-                    return_sequences=True,
-                ),
-                GRU(
-                    32,
-                    activation="tanh",
-                    return_sequences=True,
-                ),
-                GRU(
-                    32,
-                    activation="tanh",
-                    return_sequences=True,
-                ),
-                GRU(32, activation="tanh"),
-                Dense(self._label_count, activation="sigmoid"),
+                Input(shape=(self._length, 2 * 22 * 3, 1)),
+                Conv2D(64, (3, 3), activation="relu"),
+                MaxPooling2D((2, 2)),
+                Dropout(0.25),
+                Conv2D(64, (3, 3), activation="relu"),
+                MaxPooling2D((2, 2)),
+                Dropout(0.25),
+                Flatten(),
+                Dense(128, activation="relu"),
+                Dropout(0.5),
+                Dense(self._label_count, activation="softmax"),
             ]
         )
 
@@ -81,7 +82,7 @@ class Model:
         )
 
         self._model.summary()
-        self._model.fit(training_inputs, training_labels, epochs=80, batch_size=16)
+        self._model.fit(training_inputs, training_labels, epochs=150, batch_size=16)
 
     @property
     def sequence_length(self) -> int:

@@ -10,6 +10,22 @@ class Gesture:
     fps: float = 1.0
 
     @staticmethod
+    def from_hands_normalized(
+        hands: [Hand], fps_source: float, fps_target: float = 60.0, label="unknown"
+    ):
+        left = Hand.empty(left=True)
+        right = Hand.empty(left=False)
+
+        for hand in hands:
+            if hand.left_hand:
+                left = hand
+            else:
+                right = hand
+
+        g = Gesture(label=label, fps=fps_source, frames=[[left, right]])
+        return g.normalize_fps(fps_target)
+
+    @staticmethod
     def from_hands(hands: [Hand], label="Unknown"):
         """Converts a list of hands into a gesture with one frame"""
         return Gesture(label=label, frames=[hands])
@@ -18,8 +34,9 @@ class Gesture:
         """Converts a gesture with one frame into a list of hands"""
         return self.frames[0]
 
-    def to_parts(self, part_count=8) -> []:
+    def to_parts(self, part_len_secs=1) -> []:
         """Cuts this gesture into multiple parts returns a list of gestures"""
+        part_count = int((len(self.frames) * (1.0 / self.fps)) // part_len_secs)
         part_len = len(self.frames) // part_count
         frames = self.frames
         parts = []
@@ -116,8 +133,10 @@ def interpolate_hand(start: Hand, stop: Hand, stops: int) -> [Hand]:
     new_frames = [start]
 
     for stop in range(int(stops)):
-        landmarks = np.array(p1 + delta * (1.0 / stops), dtype=np.int16)
-        wrist_pos = np.array(wrist_p1 + wrist_delta * (1.0 / stops), dtype=np.int16)
+        landmarks = np.array(p1 + delta * (1.0 / stops * stop), dtype=np.int16)
+        wrist_pos = np.array(
+            wrist_p1 + wrist_delta * (1.0 / stops * stop), dtype=np.int16
+        )
 
         new_frames.append(
             replace(start, landmarks=mat_landmark(landmarks), wrist_pos=wrist_pos)
