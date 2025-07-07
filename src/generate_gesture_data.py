@@ -5,7 +5,7 @@ import sys
 import cv2
 import pickle
 import os
-from hand_pose_detector import HandPoseDetector, Hand
+from hand_pose_detector import HandPoseDetector, Hand, POS_MAX
 from augment import AugmentationPipeline, mirror, random_zoom, random_translate
 from gesture import Gesture
 
@@ -107,8 +107,8 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
 
     pipeline = AugmentationPipeline()
     pipeline.add("mirr", mirror)
-    pipeline.add("rtrans", random_translate, count=5)
-    pipeline.add("rzoom", random_zoom, count=5)
+    pipeline.add("rtrans", random_translate, count=10, max_offset=(POS_MAX // 3))
+    pipeline.add("rzoom", random_zoom, count=10, min_factor=0.5, max_factor=2.0)
 
     def augment_gesture(gesture):
         print(f"Augmenting {gesture.label}...")

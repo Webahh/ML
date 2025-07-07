@@ -1,5 +1,6 @@
 import os
 import pickle
+from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
@@ -14,77 +15,114 @@ from tensorflow.keras.models import Sequential
 from model_input import load_training_data
 
 
+@dataclass(frozen=True)
+class TrainingData:
+    label_count: int
+    labels: {}
+    labels_inv: {}
+    training_labels: any
+    training_inputs: any
+
+    def save(self, path="ressources/training_data.pkl"):
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(path="ressources/training_data.pkl"):
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+
+def generate_training_data(path="ressources/gestures") -> TrainingData:
+    training_data = load_training_data(path)
+    # Build a dictionary over all labels
+    labels = {}
+    label_count = 0
+    for label, _ in training_data:
+        if label not in labels:
+            labels[label] = label_count
+            label_count += 1
+
+    # Build inverted label dict
+    labels_inv = {index: label for label, index in labels.items()}
+
+    # Sort all data into its label
+    training_dict = {
+        labels[label]: [gesture for gesture in gestures]
+        for label, gestures in training_data
+    }
+
+    training_labels = []
+    training_inputs = []
+
+    for label, inputs in training_dict.items():
+        for input in inputs:
+            la = [0] * label_count
+            la[label] = 1
+            training_labels.append(la)
+            training_inputs.append(input.flattened())
+
+    # generate a list of shuffled indices
+    shuffled = [i for i in range(len(training_labels))]
+    np.random.shuffle(shuffled)
+
+    training_labels = np.array(training_labels, dtype=np.int16)
+    training_inputs = np.array(training_inputs, dtype=np.int16)
+
+    for p1, p2 in enumerate(shuffled):
+        training_labels[[p1, p2]] = training_labels[[p2, p1]]
+        training_inputs[[p1, p2]] = training_inputs[[p2, p1]]
+
+    return TrainingData(
+        label_count, labels, labels_inv, training_labels, training_inputs
+    )
+
+
 class Model:
-    def __init__(self, training_data=None):
-        if training_data is None:
-            training_data = load_training_data("ressources/gestures")
+    def __init__(self, training_data: TrainingData):
+        training_labels = training_data.training_labels
+        training_inputs = training_data.training_inputs
 
-        # Build a dictionary over all labels
-        self._labels = {}
-        self._label_count = 0
-        for label, _ in training_data:
-            if label not in self._labels:
-                self._labels[label] = self._label_count
-                self._label_count += 1
+        print(training_labels[0])
+        print(training_inputs[0])
 
-        # Build inverted label dict
-        self._lables_inv = {index: label for label, index in self._labels.items()}
-
-        training_dict = {
-            self._labels[label]: [gesture for gesture in gestures]
-            for label, gestures in training_data
-        }
-
-        training_label_indices = []
-        training_inputs = []
-
-        for label, inputs in training_dict.items():
-            for input in inputs:
-                training_label_indices.append(label)
-                training_inputs.append(input.flattened())
-
-        training_labels = []
-        for li in training_label_indices:
-            output = [0.0] * self.label_count
-            output[li] = 1.0
-            training_labels.append(output)
-
-        training_inputs = np.array(training_inputs)
-        training_labels = np.array(training_labels)
+        self._label_count = training_data.label_count
+        self._labels = training_data.labels
+        self._labels_inv = training_data.labels_inv
 
         self._model = Sequential(
             [
-                Input(shape=(2 * 22 * 3, 1)),
-                Flatten(),
-                Dense(2 * 22 * 3, activation="relu"),
+                Input(shape=(132,)),
+                Dense(132, activation="relu"),
                 Dropout(0.2),
                 Dense(128, activation="relu"),
                 Dropout(0.2),
                 Dense(128, activation="relu"),
-                Dropout(0.2),
-                Dense(self._label_count, activation="softmax"),
+                Dropout(0.5),
+                Dense(training_data.label_count, activation="softmax"),
             ]
         )
 
         self._model.compile(
-            optimizer=tf.keras.optimizers.Adam(0.001),
-            loss="binary_crossentropy",
+            optimizer="adam",
+            loss="categorical_crossentropy",
             metrics=["accuracy"],
         )
 
         self._model.summary()
-        self._model.fit(training_inputs, training_labels, epochs=80)
-
-    @property
-    def sequence_length(self) -> int:
-        return self._length
+        self._model.fit(
+            training_inputs,
+            training_labels,
+            epochs=5000,
+            validation_split=0.2,
+        )
 
     @property
     def label_count(self) -> int:
         return self._label_count
 
     def label_from_index(self, index: int) -> str:
-        return self._lables_inv[index]
+        return self._labels_inv[index]
 
     def index_from_label(self, label: str) -> int:
         return self._labels[label]
@@ -138,7 +176,20 @@ class Model:
 # If this file is not imported as a module, train and save model
 if __name__ == "__main__":
     print("Generating new model")
-    model = Model()
+
+    tdata = "ressources/training_data.pkl"
+    gdata = "ressources/gestures"
+
+    training_data = None
+    if os.path.isfile(tdata):
+        print("Found training data. Loading Training data...")
+        training_data = TrainingData.load(tdata)
+    else:
+        print("Did not find training data set, preparing new one...")
+        training_data = generate_training_data(gdata)
+        training_data.save(tdata)
+
+    model = Model(training_data)
     model.save()
 
     loaded_model = Model.load()
