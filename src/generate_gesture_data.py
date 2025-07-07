@@ -45,7 +45,7 @@ def process_video(video_path: str, label: str) -> Gesture:
     return (
         Gesture(label=label, frames=frames, fps=fps)
         .upscale_fps()
-        .to_parts(part_len_secs=1)
+        .to_parts(part_len_secs=120)  # split videos that are over two minutes...
     )
 
 

@@ -36,7 +36,7 @@ class Gesture:
 
     def to_parts(self, part_len_secs=1) -> []:
         """Cuts this gesture into multiple parts returns a list of gestures"""
-        part_count = int((len(self.frames) * (1.0 / self.fps)) // part_len_secs)
+        part_count = max(1, int((len(self.frames) * (1.0 / self.fps)) // part_len_secs))
         part_len = len(self.frames) // part_count
         frames = self.frames
         parts = []
