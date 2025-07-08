@@ -42,11 +42,17 @@ def process_video(video_path: str, label: str) -> Gesture:
     cap.release()
 
     print(f"Finished processing video {label}")
-    return (
+
+    # only get a 2 second part of each video
+    gestures = (
         Gesture(label=label, frames=frames, fps=fps)
         .upscale_fps()
-        .to_parts(part_len_secs=120)  # split videos that are over two minutes...
+        .to_parts(part_len_secs=2)
     )
+    if len(gestures) >= 2:
+        return [gestures[1]]
+    else:
+        return gestures
 
 
 def save_gesture(savedir: str, gesture: Gesture, augtype: str = "orig"):
@@ -106,9 +112,9 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
     base_gestures = [g for parts in base_gestures for g in parts if len(g.frames)]
 
     pipeline = AugmentationPipeline()
-    pipeline.add("mirr", mirror)
-    pipeline.add("rtrans", random_translate, count=10, max_offset=(POS_MAX // 3))
+    # pipeline.add("mirr", mirror)
     pipeline.add("rzoom", random_zoom, count=10, min_factor=0.5, max_factor=2.0)
+    pipeline.add("rtrans", random_translate, count=10, max_offset=(POS_MAX // 3))
 
     def augment_gesture(gesture):
         print(f"Augmenting {gesture.label}...")

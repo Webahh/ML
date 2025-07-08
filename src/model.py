@@ -11,7 +11,9 @@ from tensorflow.keras.layers import (
     Input,
 )
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.utils import to_categorical
 
+from hand_pose_detector import POS_MAX
 from model_input import load_training_data
 
 
@@ -35,39 +37,37 @@ class TrainingData:
 
 def generate_training_data(path="ressources/gestures") -> TrainingData:
     training_data = load_training_data(path)
-    # Build a dictionary over all labels
-    labels = {}
-    label_count = 0
-    for label, _ in training_data:
-        if label not in labels:
-            labels[label] = label_count
-            label_count += 1
-
-    # Build inverted label dict
-    labels_inv = {index: label for label, index in labels.items()}
-
-    # Sort all data into its label
-    training_dict = {
-        labels[label]: [gesture for gesture in gestures]
-        for label, gestures in training_data
-    }
 
     training_labels = []
     training_inputs = []
+    labels = {}
+    labels_inv = {}
+    label_count = 0
 
-    for label, inputs in training_dict.items():
+    for label, inputs in training_data:
+        # Build a dictionary over all labels
+        if label not in labels:
+            labels[label] = label_count
+            labels_inv[label_count] = label
+            label_count += 1
+
+        # Populate training data
         for input in inputs:
-            la = [0] * label_count
-            la[label] = 1
-            training_labels.append(la)
+            # Dont have empty hands in training_data...
+            if sum(input.flattened()) == -400:
+                continue
+
+            training_labels.append(label_count - 1)
             training_inputs.append(input.flattened())
 
-    # generate a list of shuffled indices
+    # training_labels = to_categorical(training_labels, num_classes=label_count)
+
+    training_labels = np.array(training_labels, dtype=int)
+    training_inputs = np.array(training_inputs, dtype=np.int16)
+
+    # Shuffle training data
     shuffled = [i for i in range(len(training_labels))]
     np.random.shuffle(shuffled)
-
-    training_labels = np.array(training_labels, dtype=np.int16)
-    training_inputs = np.array(training_inputs, dtype=np.int16)
 
     for p1, p2 in enumerate(shuffled):
         training_labels[[p1, p2]] = training_labels[[p2, p1]]
@@ -92,11 +92,12 @@ class Model:
 
         self._model = Sequential(
             [
-                Input(shape=(132,)),
-                Dense(132, activation="relu"),
-                Dropout(0.2),
-                Dense(128, activation="relu"),
-                Dropout(0.2),
+                Input(shape=(88, 1)),
+                Flatten(),
+                Dense(88, activation="relu"),
+                Dropout(0.25),
+                # Dense(512, activation="relu"),
+                # Dropout(0.25),
                 Dense(128, activation="relu"),
                 Dropout(0.5),
                 Dense(training_data.label_count, activation="softmax"),
@@ -104,17 +105,18 @@ class Model:
         )
 
         self._model.compile(
-            optimizer="adam",
-            loss="categorical_crossentropy",
-            metrics=["accuracy"],
+            optimizer=tf.keras.optimizers.Adam(0.00001),
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+            metrics=["sparse_categorical_accuracy"],
         )
 
         self._model.summary()
         self._model.fit(
             training_inputs,
             training_labels,
-            epochs=5000,
-            validation_split=0.2,
+            epochs=1000,
+            validation_split=0.1,
+            batch_size=128,
         )
 
     @property
@@ -146,7 +148,7 @@ class Model:
 
     def infer(self, buffer) -> (str, float):
         outputs = self._model.predict(np.array([buffer], dtype=np.int16), verbose=0)
-        index, confidence = 0, 0.0
+        index, confidence = 0, -1000
 
         for output, conf in enumerate(outputs[0]):
             if conf > confidence:
