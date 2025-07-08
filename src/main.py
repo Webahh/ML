@@ -83,7 +83,7 @@ def main():
     visualizer = visualize(info=False)  # info=False => Dont display joint positions
 
     # Setup the video
-    video = cv.VideoCapture("ressources/videos/alph_fw_B.mp4")
+    video = cv.VideoCapture("ressources/videos_prototype/alph_fw_A1.mp4")
     fps = video.get(cv.CAP_PROP_FPS)
     print(f"FPS: {fps}")
 
@@ -99,7 +99,7 @@ def main():
             break
 
         # Flip image and detect hand poses in it
-        img = cv.flip(img, 1)
+        # img = cv.flip(img, 1)
         hands = hand_pose.detect(img)
 
         model_input = ModelInput.from_hands(hands)

@@ -119,8 +119,8 @@ def generate_gestures(
     base_gestures = [g for parts in base_gestures for g in parts if len(g.frames)]
 
     pipeline = AugmentationPipeline()
-    # pipeline.add("mirr", mirror)
-    pipeline.add("rzoom", random_zoom, count=2, min_factor=0.2, max_factor=2.2)
+    pipeline.add("mirr", mirror)
+    pipeline.add("rzoom", random_zoom, count=5, min_factor=0.2, max_factor=2.2)
     pipeline.add("rtrans", random_translate, count=5, max_offset=(POS_MAX // 3))
 
     def augment_gesture(gesture):
@@ -147,4 +147,4 @@ def generate_gestures(
 
 
 if __name__ == "__main__":
-    generate_gestures()
+    generate_gestures("ressources/videos")
