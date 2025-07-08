@@ -53,9 +53,11 @@ class AtomicAltar:
 
 class ModelInputBuffer:
     def __init__(
-        self, model: Model, source_fps: float, callback: callable, target_fps=60
+        self,
+        model: Model,
+        callback: callable,
     ):
-        self._buffer = np.zeros(shape=2 * 22 * 3, dtype=np.int16)
+        self._buffer = np.zeros(shape=2 * 22 * 2, dtype=np.int16)
         self._model = model
         self._altar = AtomicAltar()
 
@@ -84,7 +86,6 @@ class ModelInputBuffer:
 
         # Check if the model needs a new buffer
         if self._altar.is_empty():
-            # self._last_infer = self._frame
             self._altar.offer(old_buffer)
 
     def destroy(self):

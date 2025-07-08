@@ -83,13 +83,13 @@ def main():
     visualizer = visualize(info=False)  # info=False => Dont display joint positions
 
     # Setup the video
-    video = cv.VideoCapture("ressources/videos/alph_fw_A.mp4")
+    video = cv.VideoCapture("ressources/videos/alph_fw_B.mp4")
     fps = video.get(cv.CAP_PROP_FPS)
     print(f"FPS: {fps}")
 
     # Setup the model and its input buffer
     model = Model.load()
-    buffer = ModelInputBuffer(model, fps, lambda result: print(result))
+    buffer = ModelInputBuffer(model, lambda result: print(result))
 
     while True:
         # Read image from video

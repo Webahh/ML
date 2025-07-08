@@ -60,7 +60,7 @@ def normalize_landmarks(lms):
     # Convert all landmark data to i16
     int_lms = np.empty((21, 3), np.int16)
 
-    r = 32767
+    r = POS_MAX
 
     def clamp(x):
         return max(-r, min(r, int(x * r)))

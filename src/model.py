@@ -47,9 +47,12 @@ def generate_training_data(path="ressources/gestures") -> TrainingData:
     for label, inputs in training_data:
         # Build a dictionary over all labels
         if label not in labels:
+            print(f"Added Label '{label}' with id {label_count}")
             labels[label] = label_count
             labels_inv[label_count] = label
             label_count += 1
+
+        print(f"Adding data to label '{label}' with id {labels[label]}")
 
         # Populate training data
         for input in inputs:
@@ -57,7 +60,7 @@ def generate_training_data(path="ressources/gestures") -> TrainingData:
             if sum(input.flattened()) == -400:
                 continue
 
-            training_labels.append(label_count - 1)
+            training_labels.append(labels[label])
             training_inputs.append(input.flattened())
 
     # training_labels = to_categorical(training_labels, num_classes=label_count)
@@ -83,7 +86,7 @@ class Model:
         training_labels = training_data.training_labels
         training_inputs = training_data.training_inputs
 
-        print(training_labels[0])
+        print(training_labels)
         print(training_inputs[0])
 
         self._label_count = training_data.label_count
@@ -96,16 +99,16 @@ class Model:
                 Flatten(),
                 Dense(88, activation="relu"),
                 Dropout(0.25),
-                # Dense(512, activation="relu"),
-                # Dropout(0.25),
                 Dense(128, activation="relu"),
                 Dropout(0.5),
+                # Dense(32, activation="relu"),
+                # Dropout(0.5),
                 Dense(training_data.label_count, activation="softmax"),
             ]
         )
 
         self._model.compile(
-            optimizer=tf.keras.optimizers.Adam(0.00001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(),
             metrics=["sparse_categorical_accuracy"],
         )
@@ -114,8 +117,8 @@ class Model:
         self._model.fit(
             training_inputs,
             training_labels,
-            epochs=1000,
-            validation_split=0.1,
+            epochs=100,
+            validation_split=0.2,
             batch_size=128,
         )
 

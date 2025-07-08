@@ -43,16 +43,18 @@ def process_video(video_path: str, label: str) -> Gesture:
 
     print(f"Finished processing video {label}")
 
-    # only get a 2 second part of each video
-    gestures = (
-        Gesture(label=label, frames=frames, fps=fps)
-        .upscale_fps()
-        .to_parts(part_len_secs=2)
-    )
-    if len(gestures) >= 2:
-        return [gestures[1]]
-    else:
-        return gestures
+    # # only get a 2 second part of each video
+    # gestures = (
+    #     Gesture(label=label, frames=frames, fps=fps)
+    #     .upscale_fps()
+    #     .to_parts(part_len_secs=2)
+    # )
+    # if len(gestures) >= 2:
+    #     return [gestures[1]]
+    # else:
+    #     return gestures
+
+    return [Gesture(label=label, frames=frames, fps=fps)]
 
 
 def save_gesture(savedir: str, gesture: Gesture, augtype: str = "orig"):
@@ -76,7 +78,9 @@ def delete_old_gestures(output_dir):
     print(f"Deleted old gestures in {output_dir}.")
 
 
-def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gestures"):
+def generate_gestures(
+    video_dir="ressources/videos_prototype", output_dir="ressources/gestures"
+):
     delete_old_gestures(output_dir)
 
     if not os.path.isdir(video_dir):
@@ -85,15 +89,18 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
         )
         return
 
+    import re
+
     training_data = []
     for file in os.listdir(video_dir):
         if file.startswith("alph_fw_") and file.endswith(".mp4"):
-            label = file.replace("alph_fw_", "").replace(".mp4", "").upper()
-            training_data.append((os.path.join(video_dir, file), label))
-
-    if not training_data:
-        print("Keine passenden Videos gefunden.")
-        return
+            match = re.match(r"alph_fw_([A-Z])", file, re.IGNORECASE)
+            if match:
+                label = match.group(1).upper()
+                training_data.append((os.path.join(video_dir, file), label))
+                print(f"{file} → Label: {label}")
+            else:
+                print(f"Warnung: Konnte kein Label aus Datei '{file}' extrahieren.")
 
     base_gestures = []
 
@@ -113,8 +120,8 @@ def generate_gestures(video_dir="ressources/videos", output_dir="ressources/gest
 
     pipeline = AugmentationPipeline()
     # pipeline.add("mirr", mirror)
-    pipeline.add("rzoom", random_zoom, count=10, min_factor=0.5, max_factor=2.0)
-    pipeline.add("rtrans", random_translate, count=10, max_offset=(POS_MAX // 3))
+    pipeline.add("rzoom", random_zoom, count=2, min_factor=0.2, max_factor=2.2)
+    pipeline.add("rtrans", random_translate, count=5, max_offset=(POS_MAX // 3))
 
     def augment_gesture(gesture):
         print(f"Augmenting {gesture.label}...")

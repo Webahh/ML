@@ -27,7 +27,7 @@ class ModelInput:
         self._input_matrix[1] = np.array(right_joints)
 
     def flattened(self):
-        return [num for hand in self.mat for coord in hand for num in coord]
+        return [num for hand in self.mat for coord in hand for num in coord[:-1]]
 
     @property
     def mat(self):
