@@ -77,13 +77,13 @@ from model_input import ModelInput
 #     visualizer.terminate()
 
 
-def main():
+def main(video="ressources/videos_prototype/alph_fw_A1.mp4"):
     # Get HandPoseDetector and Visualizer instances
     hand_pose = HandPoseDetector()
     visualizer = visualize(info=False)  # info=False => Dont display joint positions
 
     # Setup the video
-    video = cv.VideoCapture("ressources/videos_prototype/alph_fw_A1.mp4")
+    video = cv.VideoCapture(video)
     fps = video.get(cv.CAP_PROP_FPS)
     print(f"FPS: {fps}")
 
@@ -119,4 +119,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(0)

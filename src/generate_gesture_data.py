@@ -54,7 +54,7 @@ def process_video(video_path: str, label: str) -> Gesture:
     # else:
     #     return gestures
 
-    return [Gesture(label=label, frames=frames, fps=fps)]
+    return [Gesture(label=label, frames=frames, fps=fps).upscale_fps()]
 
 
 def save_gesture(savedir: str, gesture: Gesture, augtype: str = "orig"):
@@ -102,6 +102,15 @@ def generate_gestures(
             else:
                 print(f"Warnung: Konnte kein Label aus Datei '{file}' extrahieren.")
 
+        elif file.startswith("alph_rb_") and file.endswith(".mkv"):
+            match = re.match(r"alph_rb_([A-Z])", file, re.IGNORECASE)
+            if match:
+                label = match.group(1).upper()
+                training_data.append((os.path.join(video_dir, file), label))
+                print(f"{file} → Label: {label}")
+            else:
+                print(f"Warnung: Konnte kein Label aus Datei '{file}' extrahieren.")
+
     base_gestures = []
 
     if "-s" in sys.argv or "--single-thread" in sys.argv:
@@ -121,7 +130,7 @@ def generate_gestures(
     pipeline = AugmentationPipeline()
     pipeline.add("mirr", mirror)
     pipeline.add("rzoom", random_zoom, count=5, min_factor=0.2, max_factor=2.2)
-    pipeline.add("rtrans", random_translate, count=5, max_offset=(POS_MAX // 3))
+    pipeline.add("rtrans", random_translate, count=2, max_offset=(POS_MAX // 3))
 
     def augment_gesture(gesture):
         print(f"Augmenting {gesture.label}...")
@@ -147,4 +156,4 @@ def generate_gestures(
 
 
 if __name__ == "__main__":
-    generate_gestures("ressources/videos")
+    generate_gestures("ressources/G", "ressources/G_out")

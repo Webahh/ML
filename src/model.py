@@ -86,7 +86,7 @@ class Model:
         training_labels = training_data.training_labels
         training_inputs = training_data.training_inputs
 
-        print(training_labels)
+        print(training_labels[0])
         print(training_inputs[0])
 
         self._label_count = training_data.label_count
@@ -108,7 +108,7 @@ class Model:
         )
 
         self._model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(),
             metrics=["sparse_categorical_accuracy"],
         )
